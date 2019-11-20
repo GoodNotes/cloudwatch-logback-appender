@@ -29,7 +29,7 @@ dependencies {
 group = 'com.j256.cloudwatchlogbackappender'
 version = '1.13-SNAPSHOT'
 description = 'Cloudwatch Logback Appender'
-sourceCompatibility = '1.6'
+sourceCompatibility = '1.8'
 
 configurations.all {
 }
