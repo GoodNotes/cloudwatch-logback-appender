@@ -14,9 +14,7 @@ import java.util.concurrent.TimeUnit;
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.AmazonWebServiceRequest;
 import com.amazonaws.auth.AWSCredentialsProvider;
-import com.amazonaws.auth.BasicAWSCredentials;
-import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
-import com.amazonaws.internal.StaticCredentialsProvider;
+import com.amazonaws.auth.STSAssumeRoleWithWebIdentitySessionCredentialsProvider;
 import com.amazonaws.regions.RegionUtils;
 import com.amazonaws.services.ec2.AmazonEC2Client;
 import com.amazonaws.services.ec2.model.DescribeTagsRequest;
@@ -50,7 +48,7 @@ import ch.qos.logback.core.spi.AppenderAttachable;
 
 /**
  * CloudWatch log appender for logback.
- * 
+ *
  * @author graywatson
  */
 public class CloudWatchAppender extends UnsynchronizedAppenderBase<ILoggingEvent>
@@ -75,8 +73,6 @@ public class CloudWatchAppender extends UnsynchronizedAppenderBase<ILoggingEvent
 	/** property looked for to find the aws secret-key */
 	private static final String AWS_SECRET_KEY_PROPERTY = "cloudwatchappender.aws.secretKey";
 
-	private String accessKeyId;
-	private String secretKey;
 	private String region;
 	private String logGroupName;
 	private String logStreamName;
@@ -189,16 +185,6 @@ public class CloudWatchAppender extends UnsynchronizedAppenderBase<ILoggingEvent
 				Thread.currentThread().interrupt();
 			}
 		}
-	}
-
-	// not-required, default is to use the DefaultAWSCredentialsProviderChain
-	public void setAccessKeyId(String accessKeyId) {
-		this.accessKeyId = accessKeyId;
-	}
-
-	// not-required, default is to use the DefaultAWSCredentialsProviderChain
-	public void setSecretKey(String secretKey) {
-		this.secretKey = secretKey;
 	}
 
 	// required
@@ -485,18 +471,11 @@ public class CloudWatchAppender extends UnsynchronizedAppenderBase<ILoggingEvent
 		}
 
 		private void createLogsClient() {
-			AWSCredentialsProvider credentialProvider;
-			if (MiscUtils.isBlank(accessKeyId)) {
-				// try to use our class properties
-				accessKeyId = System.getProperty(AWS_ACCESS_KEY_ID_PROPERTY);
-				secretKey = System.getProperty(AWS_SECRET_KEY_PROPERTY);
-			}
-			if (MiscUtils.isBlank(accessKeyId)) {
-				// if we are still blank then use the default credentials provider
-				credentialProvider = new DefaultAWSCredentialsProviderChain();
-			} else {
-				credentialProvider = new StaticCredentialsProvider(new BasicAWSCredentials(accessKeyId, secretKey));
-			}
+			AWSCredentialsProvider credentialProvider = new STSAssumeRoleWithWebIdentitySessionCredentialsProvider.Builder(
+					System.getenv("AWS_ROLE_ARN"),
+					System.getenv("AWS_ROLE_SESSION_NAME"),
+					System.getenv("AWS_WEB_IDENTITY_TOKEN_FILE")
+			).build();
 			awsLogsClient = new AWSLogsClient(credentialProvider);
 			awsLogsClient.setRegion(RegionUtils.getRegion(region));
 			lookupInstanceName(credentialProvider);
@@ -592,7 +571,7 @@ public class CloudWatchAppender extends UnsynchronizedAppenderBase<ILoggingEvent
 		/**
 		 * This is a hack to work around the problems that were introduced when the appender was compiled with AWS SDK
 		 * version 1.9 or 1.10 but the user was running with version 1.11.
-		 * 
+		 *
 		 * The problem was that the createLogStream() method added a return object somewhere between 1.10 and 1.11 which
 		 * broke backwards compatibility and the applications would throw NoSuchMethodError. Using reflection causes the
 		 * linkage to be weaker and seems to work.
