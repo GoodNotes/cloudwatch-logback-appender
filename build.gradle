@@ -20,14 +20,14 @@ repositories {
 
 dependencies {
     compile 'ch.qos.logback:logback-classic:1.0.11'
-    compile 'com.amazonaws:aws-java-sdk-logs:1.10.40'
-    compile 'com.amazonaws:aws-java-sdk-ec2:1.10.40'
+    compile 'com.amazonaws:aws-java-sdk-logs:1.11.674'
+    compile 'com.amazonaws:aws-java-sdk-ec2:1.11.674'
     testCompile 'junit:junit:4.8.1'
     testCompile 'org.easymock:easymock:3.4'
 }
 
 group = 'com.j256.cloudwatchlogbackappender'
-version = '1.12-SNAPSHOT'
+version = '1.13-SNAPSHOT'
 description = 'Cloudwatch Logback Appender'
 sourceCompatibility = '1.6'
 
